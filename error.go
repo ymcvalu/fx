@@ -14,7 +14,7 @@ type onError struct {
 	fn ErrorFunc
 }
 
-func (e *onError) Next() (Elem, error) {
+func (e *onError) Next() (Any, error) {
 	for {
 		v, err := e.it.Next()
 		if err != nil {

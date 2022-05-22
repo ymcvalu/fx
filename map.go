@@ -1,6 +1,6 @@
 package fx
 
-type MapFunc func(Elem) (Elem, error)
+type MapFunc func(Any) (Any, error)
 
 func makeMapping(it Iterator, fn MapFunc) Iterator {
 	return &mapping{
@@ -14,7 +14,7 @@ type mapping struct {
 	fn MapFunc
 }
 
-func (m *mapping) Next() (Elem, error) {
+func (m *mapping) Next() (Any, error) {
 	v, err := m.it.Next()
 	if err != nil {
 		return nil, err

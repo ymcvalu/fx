@@ -34,7 +34,7 @@ func (s *async) start() {
 	}()
 }
 
-func (s *async) Next() (Elem, error) {
+func (s *async) Next() (Any, error) {
 	r, has := <-s.ch
 	if !has {
 		return nil, errNone

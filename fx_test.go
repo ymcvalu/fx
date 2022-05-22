@@ -10,22 +10,22 @@ import (
 
 func TestFx(t *testing.T) {
 	list, err := From(Infinite()).
-		Map(func(e Elem) (Elem, error) {
-			return e.(uint64) * e.(uint64), nil
+		Map(func(v Any) (Any, error) {
+			return v.(uint64) * v.(uint64), nil
 		}).
 		Async(10).                        // async the previous map iter, and the size of chan buf is 10
 		Spawn(10, func(s Stream) Stream { // spawn 10 goroutines to cousume the iter
 			return s.
-				Map(func(e Elem) (Elem, error) {
+				Map(func(v Any) (Any, error) {
 					time.Sleep(time.Millisecond * 100)
-					return e, nil
+					return v, nil
 				}).
-				Filter(func(e Elem) (bool, error) {
-					return e.(uint64)%10 == 4, nil
+				Filter(func(v Any) (bool, error) {
+					return v.(uint64)%10 == 4, nil
 				}).
-				FlatMap(func(e Elem) ([]Elem, error) {
-					v := e.(uint64)
-					return []Elem{v, v + 1, v + 2}, nil
+				FlatMap(func(v Any) ([]Any, error) {
+					iv := v.(uint64)
+					return []Any{iv, iv + 1, iv + 2}, nil
 				})
 		}).
 		OnError(func(error) error {
@@ -41,13 +41,13 @@ func TestFx(t *testing.T) {
 func TestNotClose(t *testing.T) {
 	iter := From(Range(1, 10)).
 		Spawn(10, func(s Stream) Stream {
-			return s.Map(func(e Elem) (Elem, error) {
-				return e.(int) * e.(int), nil
+			return s.Map(func(v Any) (Any, error) {
+				return v.(int) * v.(int), nil
 			})
 		}).
-		FlatMap(func(e Elem) ([]Elem, error) {
-			v := e.(int)
-			return []Elem{v, v + 1}, nil
+		FlatMap(func(v Any) ([]Any, error) {
+			iv := v.(int)
+			return []Any{iv, iv + 1}, nil
 		})
 
 	list := make([]int, 0)
@@ -70,23 +70,23 @@ func TestNotClose(t *testing.T) {
 func TestRange(t *testing.T) {
 	start := time.Now()
 	list, err := From(Range(1, 100)).
-		Map(func(e Elem) (Elem, error) {
+		Map(func(v Any) (Any, error) {
 			time.Sleep(time.Millisecond * 10)
-			return e.(int) * e.(int), nil
+			return v.(int) * v.(int), nil
 		}).
 		Async(10).
 		Spawn(10, func(s Stream) Stream {
 			return s.
-				Map(func(e Elem) (Elem, error) {
+				Map(func(v Any) (Any, error) {
 					time.Sleep(time.Millisecond * 100)
-					return e, nil
+					return v, nil
 				}).
-				Filter(func(e Elem) (bool, error) {
-					return e.(int)%10 == 4, nil
+				Filter(func(v Any) (bool, error) {
+					return v.(int)%10 == 4, nil
 				}).
-				FlatMap(func(e Elem) ([]Elem, error) {
-					v := e.(int)
-					return []Elem{v, v + 1, v + 2}, nil
+				FlatMap(func(v Any) ([]Any, error) {
+					iv := v.(int)
+					return []Any{iv, iv + 1, iv + 2}, nil
 				})
 		}).
 		List(100)
@@ -99,12 +99,12 @@ func TestRange(t *testing.T) {
 func TestErr(t *testing.T) {
 	t.Run("throw err", func(t *testing.T) {
 		_, err := From(Infinite()).
-			Map(func(e Elem) (Elem, error) {
-				return e.(uint64) * e.(uint64), nil
+			Map(func(v Any) (Any, error) {
+				return v.(uint64) * v.(uint64), nil
 			}).
-			Filter(func(e Elem) (bool, error) {
-				if e.(uint64)%10 == 1 {
-					return false, fmt.Errorf("test err: %v", e)
+			Filter(func(v Any) (bool, error) {
+				if v.(uint64)%10 == 1 {
+					return false, fmt.Errorf("test err: %v", v)
 				}
 				return true, nil
 			}).
@@ -114,12 +114,12 @@ func TestErr(t *testing.T) {
 
 	t.Run("skip err", func(t *testing.T) {
 		list, err := From(Infinite()).
-			Map(func(e Elem) (Elem, error) {
-				return e.(uint64) * e.(uint64), nil
+			Map(func(v Any) (Any, error) {
+				return v.(uint64) * v.(uint64), nil
 			}).
-			Filter(func(e Elem) (bool, error) {
-				if e.(uint64)%10 == 1 {
-					return false, fmt.Errorf("test err: %v", e)
+			Filter(func(v Any) (bool, error) {
+				if v.(uint64)%10 == 1 {
+					return false, fmt.Errorf("test err: %v", v)
 				}
 				return true, nil
 			}).
@@ -131,4 +131,16 @@ func TestErr(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Len(t, list, 10)
 	})
+}
+
+func TestMapReduce(t *testing.T) {
+	sum, err := From(Range(1, 100)).
+		Map(func(v Any) (Any, error) {
+			return v.(int) * 2, nil
+		}).
+		Reduce(0, func(sum, v Any) (Any, error) {
+			return sum.(int) + v.(int), nil
+		})
+	assert.Nil(t, err)
+	t.Log(sum)
 }

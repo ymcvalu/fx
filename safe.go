@@ -14,7 +14,7 @@ type safe struct {
 	mu sync.Mutex
 }
 
-func (s *safe) Next() (Elem, error) {
+func (s *safe) Next() (Any, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.it.Next()

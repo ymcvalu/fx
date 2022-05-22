@@ -1,6 +1,6 @@
 package fx
 
-type FlatMapFunc func(Elem) ([]Elem, error)
+type FlatMapFunc func(Any) ([]Any, error)
 
 func makeFlatMap(it Iterator, fn FlatMapFunc) Iterator {
 	return &flatMap{
@@ -12,10 +12,10 @@ func makeFlatMap(it Iterator, fn FlatMapFunc) Iterator {
 type flatMap struct {
 	it    Iterator
 	fn    FlatMapFunc
-	elems []Elem
+	elems []Any
 }
 
-func (f *flatMap) Next() (Elem, error) {
+func (f *flatMap) Next() (Any, error) {
 	for {
 		if len(f.elems) > 0 {
 			e := f.elems[0]

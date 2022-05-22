@@ -36,7 +36,7 @@ type spawn struct {
 	wg      sync.WaitGroup
 }
 
-func (s *spawn) Next() (Elem, error) {
+func (s *spawn) Next() (Any, error) {
 	r, has := <-s.ch
 	if !has {
 		return nil, errNone

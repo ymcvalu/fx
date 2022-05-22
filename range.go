@@ -12,7 +12,7 @@ type rng struct {
 	to   int
 }
 
-func (r *rng) Next() (Elem, error) {
+func (r *rng) Next() (Any, error) {
 	if r.from >= r.to {
 		return 0, errNone
 	}

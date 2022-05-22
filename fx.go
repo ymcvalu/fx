@@ -4,10 +4,10 @@ import (
 	"errors"
 )
 
-type Elem interface{}
+type Any interface{}
 
 type result struct {
-	v   Elem
+	v   Any
 	err error
 }
 
@@ -26,7 +26,7 @@ type Fx interface {
 }
 
 type Iterator interface {
-	Next() (Elem, error)
+	Next() (Any, error)
 	Close()
 }
 
@@ -40,12 +40,14 @@ type Stream interface {
 	iter() Iterator
 }
 
-type ForEachFunc func(e Elem) error
+type ForEachFunc func(Any) (bool, error)
+type ReduceFunc func(sum Any, v Any) (Any, error)
 
 type Collect interface {
-	List(initCap uint) ([]Elem, error)
 	ForEach(fn ForEachFunc) error
-	Take(n uint) ([]Elem, error)
+	Reduce(sum Any, fn ReduceFunc) (Any, error)
+	List(initCap uint) ([]Any, error)
+	Take(n uint) ([]Any, error)
 }
 
 func From(it Iterator) Fx {
@@ -58,7 +60,7 @@ type fx struct {
 	it Iterator
 }
 
-func (f *fx) Next() (Elem, error) {
+func (f *fx) Next() (Any, error) {
 	return f.it.Next()
 }
 
@@ -107,37 +109,6 @@ func (f *fx) iter() Iterator {
 	return f.it
 }
 
-func (f *fx) List(initCap uint) ([]Elem, error) {
-	list := make([]Elem, 0, initCap)
-
-	if err := f.ForEach(func(e Elem) error {
-		list = append(list, e)
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return list, nil
-}
-
-func (f *fx) Take(n uint) ([]Elem, error) {
-	defer f.Close()
-
-	list := make([]Elem, 0, n)
-	for i := uint(0); i < n; i++ {
-		v, err := f.Next()
-		if err != nil {
-			if IsNone(err) {
-				break
-			}
-			return nil, err
-		}
-		list = append(list, v)
-	}
-
-	return list, nil
-}
-
 func (f *fx) ForEach(fn ForEachFunc) error {
 	defer f.Close()
 
@@ -150,9 +121,60 @@ func (f *fx) ForEach(fn ForEachFunc) error {
 			return err
 		}
 
-		if err := fn(v); err != nil {
+		if b, err := fn(v); err != nil {
 			return err
+		} else if !b {
+			break
 		}
 	}
 	return nil
+}
+
+func (f *fx) Reduce(init Any, fn ReduceFunc) (Any, error) {
+	sum := init
+	if err := f.ForEach(func(v Any) (bool, error) {
+		_sum, err := fn(sum, v)
+		if err != nil {
+			return false, err
+		}
+		sum = _sum
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return sum, nil
+}
+
+func (f *fx) List(initCap uint) ([]Any, error) {
+	list := make([]Any, 0, initCap)
+
+	if err := f.ForEach(func(v Any) (bool, error) {
+		list = append(list, v)
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
+func (f *fx) Take(n uint) ([]Any, error) {
+	var (
+		i    uint = 0
+		list      = make([]Any, 0, n)
+	)
+
+	if err := f.ForEach(func(v Any) (bool, error) {
+		if i >= n {
+			return false, nil
+		}
+		list = append(list, v)
+		i++
+		return true, nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }

@@ -1,6 +1,6 @@
 package fx
 
-type FilterFunc func(Elem) (bool, error)
+type FilterFunc func(Any) (bool, error)
 
 func makeFilter(it Iterator, fn FilterFunc) Iterator {
 	return &filter{
@@ -14,7 +14,7 @@ type filter struct {
 	fn FilterFunc
 }
 
-func (f *filter) Next() (Elem, error) {
+func (f *filter) Next() (Any, error) {
 	for {
 		v, err := f.it.Next()
 		if err != nil {
