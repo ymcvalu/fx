@@ -1,6 +1,7 @@
 package fx
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -193,4 +194,86 @@ func TestRecover(t *testing.T) {
 		assert.NotNil(t, err)
 		t.Log(err)
 	})
+}
+
+func TestAdapter(t *testing.T) {
+	t.Run("fn adapter", func(t *testing.T) {
+		v := 0
+		sum, err := FromFn(func() (int, error) {
+			if v == 10 {
+				return 0, None()
+			}
+			v++
+			return v, nil
+		}).Reduce(0, func(sum, v Any) (Any, error) {
+			sum = sum.(int) + v.(int)
+			return sum, nil
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 55, sum)
+	})
+
+	t.Run("fn adater with err", func(t *testing.T) {
+		testErr := errors.New("test ")
+		_, err := FromFn(func() (interface{}, error) {
+			return nil, errors.New("test ")
+
+		}).Reduce(0, func(sum, v Any) (Any, error) {
+			sum = sum.(int) + v.(int)
+			return sum, nil
+		})
+		assert.NotNil(t, err)
+		assert.Equal(t, testErr, err)
+	})
+
+	t.Run("comp iter adapter", func(t *testing.T) {
+		it1 := compIterWithClose{}
+		sum1, err1 := FromCompIter(&it1).
+			Reduce(0, func(sum, v Any) (Any, error) {
+				sum = sum.(int) + v.(int)
+				return sum, nil
+			})
+		assert.Nil(t, err1)
+		assert.Equal(t, 55, sum1)
+		assert.True(t, it1.closed)
+
+		it2 := compIterWithoutClose{}
+		sum2, err2 := FromCompIter(&it2).
+			Reduce(0, func(sum, v Any) (Any, error) {
+				sum = sum.(int) + v.(int)
+				return sum, nil
+			})
+		assert.Nil(t, err2)
+		assert.Equal(t, 55, sum2)
+	})
+}
+
+type compIterWithClose struct {
+	v      int
+	closed bool
+}
+
+func (i *compIterWithClose) Next() (int, error) {
+	if i.v == 10 {
+		return 0, None()
+	}
+	i.v++
+	return i.v, nil
+}
+
+func (i *compIterWithClose) Close() error {
+	i.closed = true
+	return nil
+}
+
+type compIterWithoutClose struct {
+	v int
+}
+
+func (i *compIterWithoutClose) Next() (int, error) {
+	if i.v == 10 {
+		return 0, None()
+	}
+	i.v++
+	return i.v, nil
 }

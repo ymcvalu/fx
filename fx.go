@@ -15,6 +15,10 @@ var (
 	errNone = errors.New("end of iter")
 )
 
+func None() error {
+	return errNone
+}
+
 func IsNone(err error) bool {
 	return errors.Is(err, errNone)
 }
