@@ -1,6 +1,6 @@
 # fx
 
-a simple and easy function extension package, with synchronous and asynchronous support.
+a function extension package, with synchronous and asynchronous support.
 
 > Using type parameters as method receiver is unsupported, liking `func [T] (T) Xxx(...)`, and type's method must have no type parameters, so i can only use the fucking `interface{}`.
 
@@ -48,4 +48,4 @@ a simple and easy function extension package, with synchronous and asynchronous 
 ```
 
 - async: make the previous iter execute asynchronously
-- spawn: fan-out and fan-in
+- spawn: dispatch to multiple groutines and fan-in
