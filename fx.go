@@ -37,6 +37,7 @@ type Stream interface {
 	Async(bs uint) Fx
 	Spawn(n uint, fn SpawnFunc) Fx
 	OnError(fn ErrorFunc) Fx
+	Recover(fn RecoverFunc) Fx
 	iter() Iterator
 }
 
@@ -102,6 +103,12 @@ func (f *fx) Spawn(n uint, fn SpawnFunc) Fx {
 func (f *fx) OnError(fn ErrorFunc) Fx {
 	return &fx{
 		it: makeOnError(f.it, fn),
+	}
+}
+
+func (f *fx) Recover(fn RecoverFunc) Fx {
+	return &fx{
+		it: makeOnPanic(f.it, fn),
 	}
 }
 

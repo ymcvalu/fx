@@ -144,3 +144,53 @@ func TestMapReduce(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log(sum)
 }
+
+func TestRecover(t *testing.T) {
+	t.Run("ignore panic", func(t *testing.T) {
+		sum, err := From(Range(1, 100)).
+			Map(func(v Any) (Any, error) {
+				return v.(int) * 2, nil
+			}).
+			Filter(func(v Any) (bool, error) {
+				if v.(int) == 6 {
+					panic("test")
+				}
+				return true, nil
+			}).
+			Recover(func(p interface{}) error {
+				t.Log("panic found and skip", p)
+				return nil // ignore panic
+			}).
+			Async(10).
+			Reduce(0, func(sum, v Any) (Any, error) {
+				return sum.(int) + v.(int), nil
+			})
+		assert.Nil(t, err)
+		assert.Equal(t, 9894, sum)
+		t.Log(sum)
+	})
+
+	t.Run("fail when panic", func(t *testing.T) {
+		_, err := From(Range(1, 100)).
+			Map(func(v Any) (Any, error) {
+				return v.(int) * 2, nil
+			}).
+			Filter(func(v Any) (bool, error) {
+				if v.(int) == 6 {
+					panic("test")
+				}
+				return true, nil
+			}).
+			Recover(func(p interface{}) error {
+				if e, is := p.(error); is {
+					return fmt.Errorf("panic with %w", e)
+				}
+				return fmt.Errorf("panic with %v", p)
+			}).
+			Reduce(0, func(sum, v Any) (Any, error) {
+				return sum.(int) + v.(int), nil
+			})
+		assert.NotNil(t, err)
+		t.Log(err)
+	})
+}
