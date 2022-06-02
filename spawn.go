@@ -12,18 +12,15 @@ func makeSpawn(it Iterator, n uint, fn SpawnFunc) Iterator {
 		n = 1
 	}
 
-	stm := fn(&fx{
-		it: makeSafe(it),
-	})
-
 	s := &spawn{
-		it:      stm.iter(),
+		it:      it,
 		ch:      make(chan result),
 		closeCh: make(chan struct{}),
 		wg:      sync.WaitGroup{},
+		fn:      fn,
 	}
 
-	chs := s.fanout(n)
+	chs := s.dispatch(n)
 	s.fanin(chs)
 
 	return s
@@ -34,6 +31,7 @@ type spawn struct {
 	ch      chan result
 	closeCh chan struct{}
 	wg      sync.WaitGroup
+	fn      SpawnFunc
 }
 
 func (s *spawn) Next() (Any, error) {
@@ -50,9 +48,10 @@ func (s *spawn) Close() {
 	s.it.Close()
 }
 
-func (s *spawn) fanout(n uint) []<-chan result {
+func (s *spawn) dispatch(n uint) []<-chan result {
 	chs := make([]<-chan result, 0, n)
 
+	safe := makeSaferead(s.it)
 	for i := uint(0); i < n; i++ {
 		ch := make(chan result)
 
@@ -63,7 +62,12 @@ func (s *spawn) fanout(n uint) []<-chan result {
 				close(ch)
 			}()
 
-			consumeIter(s.it, ch, s.closeCh)
+			it := s.fn(&fx{
+				it: safe,
+			}).iter()
+			defer it.Close()
+
+			consumeIter(it, ch, s.closeCh)
 		}()
 
 		chs = append(chs, ch)

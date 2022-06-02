@@ -9,6 +9,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSpawn(t *testing.T) {
+	sum, err := From(Range(0, 10000)).
+		Spawn(1000, func(s Stream) Stream {
+			return s.
+				Map(func(v Any) (Any, error) {
+					return v.(int) * v.(int), nil
+				}).
+				Filter(func(_ Any) (bool, error) {
+					return true, nil
+				})
+		}).
+		Reduce(0, func(sum, _ Any) (Any, error) {
+			return sum.(int) + 1, nil
+		})
+	assert.Nil(t, err)
+	assert.Equal(t, 10000, sum)
+}
+
 func TestFx(t *testing.T) {
 	list, err := From(Infinite()).
 		Map(func(v Any) (Any, error) {
